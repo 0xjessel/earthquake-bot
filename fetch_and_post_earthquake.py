@@ -3,6 +3,7 @@ import requests
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
+import time
 
 load_dotenv(dotenv_path='.env.local')
 
@@ -13,33 +14,43 @@ max_radius = os.getenv('MAX_RADIUS')
 
 def fetch_new_earthquakes():
     url = usgs_api_url
-    
-    params = {
-        'format': 'geojson',
-        'starttime': (datetime.now(timezone.utc) - timedelta(minutes=5000, seconds=3)).isoformat(),
-        'endtime': datetime.now(timezone.utc).isoformat(),
-        'latitude': latitude,  
-        'longitude': longitude,  
-        'maxradius': max_radius 
-    }
-    
-    response = requests.get(url, params=params)
-    
-    if response.status_code == 200:
-        data = response.json()
-        new_earthquakes = []
-        
-        for feature in data['features']:
-            if feature['properties']['type'] != 'earthquake':
-                continue  
+    max_attempts = 5  
+    attempt = 0
 
-            # consider filtering for earthquakes with a magnitude of 1.0 or greater if this gets too spammy
-            new_earthquakes.append(feature)
+    while attempt < max_attempts:
+        try:
+            params = {
+                'format': 'geojson',
+                'starttime': (datetime.now(timezone.utc) - timedelta(minutes=5, seconds=3)).isoformat(),
+                'endtime': datetime.now(timezone.utc).isoformat(),
+                'latitude': latitude,  
+                'longitude': longitude,  
+                'maxradius': max_radius 
+            }
+            
+            response = requests.get(url, params=params)
+            response.raise_for_status()  # Raise an error for bad responses
+            
+            data = response.json()
+            new_earthquakes = []
+            
+            for feature in data['features']:
+                if feature['properties']['type'] != 'earthquake':
+                    print(f"found a non-earthquake type: {feature['properties']['type']}")
+                    continue  
+
+                new_earthquakes.append(feature)
+            
+            return new_earthquakes
         
-        return new_earthquakes
-    else:
-        print("Error fetching data:", response.status_code)
-        return []
+        except requests.RequestException as e:
+            print(f"Attempt {attempt + 1} failed: {e}")
+            attempt += 1  
+            if attempt < max_attempts:  
+                time.sleep(1)  
+            if attempt == max_attempts:
+                print("Max attempts reached. Giving up.")
+                return []  
 
 def post_to_threads(earthquakes):
     THREADS_USER_ID = os.getenv('THREADS_USER_ID')

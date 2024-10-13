@@ -14,7 +14,6 @@ time_window = int(os.getenv('TIME_WINDOW'))
 
 def fetch_new_earthquakes():
     url = usgs_api_url
-    print(url)
     
     params = {
         'format': 'geojson',
@@ -61,9 +60,9 @@ def post_to_threads(earthquakes):
         elif 4.0 <= magnitude < 5.0:
             prefix = "🫨"
         else:
-            prefix = "🫨‼️"
+            prefix = "🫨️🚨"
 
-        post_message = f"{prefix}: A {magnitude} magnitude earthquake occurred near {location}."
+        post_message = f"{prefix} A {magnitude} magnitude earthquake occurred near {location}."
         details_message = f" Details: {usgs_link}"
 
         if len(post_message) + len(details_message) <= 500:

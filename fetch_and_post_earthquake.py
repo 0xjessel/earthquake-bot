@@ -10,14 +10,13 @@ usgs_api_url = os.getenv('USGS_API_URL')
 latitude = os.getenv('LATITUDE')
 longitude = os.getenv('LONGITUDE')
 max_radius = os.getenv('MAX_RADIUS')
-time_window = int(os.getenv('TIME_WINDOW')) 
 
 def fetch_new_earthquakes():
     url = usgs_api_url
     
     params = {
         'format': 'geojson',
-        'starttime': (datetime.now(timezone.utc) - timedelta(minutes=time_window)).isoformat(),
+        'starttime': (datetime.now(timezone.utc) - timedelta(minutes=5, seconds=3)).isoformat(),
         'endtime': datetime.now(timezone.utc).isoformat(),
         'latitude': latitude,  
         'longitude': longitude,  

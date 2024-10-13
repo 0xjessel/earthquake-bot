@@ -42,7 +42,7 @@ def fetch_new_earthquakes():
                     print(f"found a non-earthquake type: {feature['properties']['type']}")
                     continue  
 
-                print("found an earthquake")
+                print(f"found earthquake at time: {feature['properties']['time']}")
                 new_earthquakes.append(feature)
             
             return new_earthquakes
@@ -86,6 +86,8 @@ def post_to_threads(earthquakes):
         if len(post_message) + len(details_message) <= 500:
             post_message += details_message
 
+        print(post_message)
+
         THREADS_API_URL = (
             f"https://graph.threads.net/{THREADS_USER_ID}/threads?text={quote(post_message)}"
             f"&access_token={THREADS_ACCESS_TOKEN}&media_type=TEXT&link_attachment={quote(google_maps_link)}"
@@ -102,7 +104,7 @@ def post_to_threads(earthquakes):
             publish_response = requests.post(publish_url)
             publish_response.raise_for_status()  
             
-            print(post_message)
+            print("Earthquake posted successfully.")
         except requests.RequestException as e:
             print(f"Failed to post earthquake: {e}")
 

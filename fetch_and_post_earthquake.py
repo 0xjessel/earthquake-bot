@@ -10,7 +10,7 @@ usgs_api_url = os.getenv('USGS_API_URL')
 latitude = os.getenv('LATITUDE')
 longitude = os.getenv('LONGITUDE')
 max_radius = os.getenv('MAX_RADIUS')
-time_window = os.getenv('TIME_WINDOW')
+time_window = int(os.getenv('TIME_WINDOW')) 
 
 def fetch_new_earthquakes():
     url = usgs_api_url
@@ -43,32 +43,6 @@ def fetch_new_earthquakes():
         print("Error fetching data:", response.status_code)
         return []
 
-def post_to_thread(earthquakes):
-    for earthquake in earthquakes:
-        magnitude = earthquake['properties']['mag']
-        location = earthquake['properties']['place']
-        coordinates = earthquake['geometry']['coordinates']
-        lat, lon = coordinates[1], coordinates[0]  # USGS returns [lon, lat]
-        
-        # Determine the prefix based on magnitude
-        if magnitude < 4.0:
-            prefix = "zzz..."
-        elif 4.0 <= magnitude < 5.0:
-            prefix = "Whoa!"
-        else:
-            prefix = "ALERT!"
-        
-        google_maps_link = f"https://www.google.com/maps/place/{lat}+{lon}/@{lat},{lon},10z"
-        
-        usgs_link = earthquake['properties']['url']
-        
-        post_message = (
-            f"{prefix} A {magnitude} magnitude earthquake occurred near {location}. "
-            f"Details: {usgs_link}. Link attachment: {google_maps_link}"
-        )
-        
-        print(post_message)
-
 def post_to_threads(earthquakes):
     THREADS_USER_ID = os.getenv('THREADS_USER_ID')
     THREADS_ACCESS_TOKEN = os.getenv('THREADS_ACCESS_TOKEN')
@@ -82,12 +56,12 @@ def post_to_threads(earthquakes):
         google_maps_link = f"https://www.google.com/maps/place/{lat}+{lon}/@{lat},{lon},10z"
         usgs_link = earthquake['properties']['url']
 
-        if magnitude < 3.5:
-            prefix = "zzz..."
-        elif 3.5 <= magnitude < 5.0:
-            prefix = "Whoa!"
+        if magnitude < 4.0:
+            prefix = "😴"
+        elif 4.0 <= magnitude < 5.0:
+            prefix = "🫨"
         else:
-            prefix = "ALERT!"
+            prefix = "🫨‼️"
 
         post_message = f"{prefix}: A {magnitude} magnitude earthquake occurred near {location}."
         details_message = f" Details: {usgs_link}"

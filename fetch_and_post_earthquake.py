@@ -16,7 +16,7 @@ def fetch_new_earthquakes():
     
     params = {
         'format': 'geojson',
-        'starttime': (datetime.now(timezone.utc) - timedelta(minutes=5, seconds=3)).isoformat(),
+        'starttime': (datetime.now(timezone.utc) - timedelta(minutes=5000, seconds=3)).isoformat(),
         'endtime': datetime.now(timezone.utc).isoformat(),
         'latitude': latitude,  
         'longitude': longitude,  
@@ -54,14 +54,18 @@ def post_to_threads(earthquakes):
         google_maps_link = f"https://www.google.com/maps/place/{lat}+{lon}/@{lat},{lon},10z"
         usgs_link = earthquake['properties']['url']
 
-        if magnitude < 4.0:
+        if magnitude < 3.0:
             prefix = "😴"
+        elif 3.0 <= magnitude < 4.0:
+            prefix = "😳"
         elif 4.0 <= magnitude < 5.0:
             prefix = "🫨"
-        else:
-            prefix = "🫨️🚨"
+        elif 5.0 <= magnitude < 7.0:
+            prefix = "🫨️🫨️"
+        else: 
+            prefix = "🫨️🫨🫨🫨"
 
-        post_message = f"{prefix} A {magnitude} magnitude earthquake occurred near {location}."
+        post_message = f"{prefix} {magnitude} magnitude earthquake occurred near {location}."
         details_message = f" Details: {usgs_link}"
 
         if len(post_message) + len(details_message) <= 500:

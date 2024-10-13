@@ -42,6 +42,7 @@ def fetch_new_earthquakes():
                     print(f"found a non-earthquake type: {feature['properties']['type']}")
                     continue  
 
+                print("found an earthquake")
                 new_earthquakes.append(feature)
             
             return new_earthquakes
@@ -101,7 +102,7 @@ def post_to_threads(earthquakes):
             publish_response = requests.post(publish_url)
             publish_response.raise_for_status()  
             
-            print("Earthquake posted successfully.")
+            print(post_message)
         except requests.RequestException as e:
             print(f"Failed to post earthquake: {e}")
 

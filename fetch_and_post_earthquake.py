@@ -51,7 +51,7 @@ def post_to_threads(earthquakes):
         coordinates = earthquake['geometry']['coordinates']
         lat, lon = coordinates[1], coordinates[0]  # USGS returns [lon, lat]
         
-        google_maps_link = f"https://www.google.com/maps/place/{lat}+{lon}/@{lat},{lon},10z"
+        google_maps_link = f"https://www.google.com/maps/place/{lat}+{lon}/@{lat},{lon},9z"
         usgs_link = earthquake['properties']['url']
 
         if magnitude < 3.0:

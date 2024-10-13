@@ -17,12 +17,15 @@ def fetch_new_earthquakes():
     max_attempts = 5  
     attempt = 0
 
+    # Get the current time once before the loop
+    current_time = datetime.now(timezone.utc)
+
     while attempt < max_attempts:
         try:
             params = {
                 'format': 'geojson',
-                'starttime': (datetime.now(timezone.utc) - timedelta(minutes=5, seconds=3)).isoformat(),
-                'endtime': datetime.now(timezone.utc).isoformat(),
+                'starttime': (current_time - timedelta(minutes=5)).isoformat(),  
+                'endtime': current_time.isoformat(),  
                 'latitude': latitude,  
                 'longitude': longitude,  
                 'maxradius': max_radius 

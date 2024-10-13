@@ -1,3 +1,4 @@
+from urllib.parse import quote
 import requests
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
@@ -68,9 +69,55 @@ def post_to_thread(earthquakes):
         
         print(post_message)
 
+def post_to_threads(earthquakes):
+    THREADS_USER_ID = os.getenv('THREADS_USER_ID')
+    THREADS_ACCESS_TOKEN = os.getenv('THREADS_ACCESS_TOKEN')
+    
+    for earthquake in earthquakes:  
+        magnitude = earthquake['properties']['mag']
+        location = earthquake['properties']['place']
+        coordinates = earthquake['geometry']['coordinates']
+        lat, lon = coordinates[1], coordinates[0]  # USGS returns [lon, lat]
+        
+        google_maps_link = f"https://www.google.com/maps/place/{lat}+{lon}/@{lat},{lon},10z"
+        usgs_link = earthquake['properties']['url']
+
+        if magnitude < 3.5:
+            prefix = "zzz..."
+        elif 3.5 <= magnitude < 5.0:
+            prefix = "Whoa!"
+        else:
+            prefix = "ALERT!"
+
+        post_message = f"{prefix}: A {magnitude} magnitude earthquake occurred near {location}."
+        details_message = f" Details: {usgs_link}"
+
+        if len(post_message) + len(details_message) <= 500:
+            post_message += details_message
+
+        THREADS_API_URL = (
+            f"https://graph.threads.net/{THREADS_USER_ID}/threads?text={quote(post_message)}"
+            f"&access_token={THREADS_ACCESS_TOKEN}&media_type=TEXT&link_attachment={quote(google_maps_link)}"
+        )
+        
+        try:
+            response = requests.post(THREADS_API_URL)
+            response.raise_for_status()
+            
+            data = response.json()
+            creation_id = data.get('id')  
+            
+            publish_url = f"https://graph.threads.net/{THREADS_USER_ID}/threads_publish?creation_id={creation_id}&access_token={THREADS_ACCESS_TOKEN}"
+            publish_response = requests.post(publish_url)
+            publish_response.raise_for_status()  
+            
+            print("Earthquake posted successfully.")
+        except requests.RequestException as e:
+            print(f"Failed to post earthquake: {e}")
+
 if __name__ == "__main__":
     new_earthquakes = fetch_new_earthquakes()
     if new_earthquakes:
-        post_to_thread(new_earthquakes)
+        post_to_threads(new_earthquakes)
     else:
         print("No new earthquakes found")

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
 import time
+import re  # Import the regular expression module
 
 load_dotenv(dotenv_path='.env.local')
 
@@ -61,11 +62,21 @@ def post_to_threads(earthquakes):
     THREADS_ACCESS_TOKEN = os.getenv('THREADS_ACCESS_TOKEN')
     
     for earthquake in earthquakes:  
-        magnitude = earthquake['properties']['mag']
+        magnitude = round(earthquake['properties']['mag'], 1)  
         location = earthquake['properties']['place']
         coordinates = earthquake['geometry']['coordinates']
         lat, lon = coordinates[1], coordinates[0]  # USGS returns [lon, lat]
         
+        # Convert km to mi
+        match = re.match(r"(\d+)\s*km", location)
+        if match:
+            km_value = float(match.group(1))
+            miles_value = km_value * 0.621371  # Convert km to miles
+            miles_value = round(miles_value, 1)  # Round to one decimal point
+            
+            mile_string = "mile" if miles_value < 1 else "miles"
+            location = f"{miles_value} {mile_string} {location[match.end():].strip()}"  # Replace km with miles
+
         google_maps_link = f"https://www.google.com/maps/place/{lat}+{lon}/@{lat},{lon},9z"
         usgs_link = earthquake['properties']['url']
 
@@ -80,7 +91,7 @@ def post_to_threads(earthquakes):
         else: 
             prefix = "🫨️🫨🫨🫨"
 
-        post_message = f"{prefix} {magnitude} magnitude earthquake occurred near {location}."
+        post_message = f"{prefix} {magnitude} magnitude earthquake occurred {location}."
         details_message = f" Details: {usgs_link}"
 
         if len(post_message) + len(details_message) <= 500:

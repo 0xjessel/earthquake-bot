@@ -10,7 +10,7 @@ load_dotenv(dotenv_path='.env.local')
 usgs_api_url = os.getenv('USGS_API_URL')
 latitude = os.getenv('LATITUDE')
 longitude = os.getenv('LONGITUDE')
-max_radius = os.getenv('MAX_RADIUS')
+max_radius = os.getenv('MAX_RADIUS_KM')
 
 def fetch_new_earthquakes():
     url = usgs_api_url
@@ -28,9 +28,9 @@ def fetch_new_earthquakes():
                 'endtime': current_time.isoformat(),  
                 'latitude': latitude,  
                 'longitude': longitude,  
-                'maxradius': max_radius 
+                'maxradiuskm': max_radius 
             }
-            
+
             response = requests.get(url, params=params)
             response.raise_for_status()  # Raise an error for bad responses
             

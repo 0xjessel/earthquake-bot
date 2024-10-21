@@ -42,7 +42,8 @@ def fetch_new_earthquakes():
                     print(f"found a non-earthquake type: {feature['properties']['type']}")
                     continue  
 
-                print(f"found earthquake at time: {feature['properties']['updated']}")
+                print(f"earthquake occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                print(f"earthquake updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
                 new_earthquakes.append(feature)
             
             return new_earthquakes

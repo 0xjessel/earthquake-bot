@@ -25,8 +25,7 @@ def fetch_new_earthquakes():
         try:
             params = {
                 'format': 'geojson',
-                'starttime': (current_time - timedelta(minutes=5)).isoformat(),  
-                'endtime': current_time.isoformat(),  
+                'updatedafter': (current_time - timedelta(minutes=5)).isoformat(),  
                 'latitude': latitude,  
                 'longitude': longitude,  
                 'maxradiuskm': max_radius 
@@ -43,7 +42,7 @@ def fetch_new_earthquakes():
                     print(f"found a non-earthquake type: {feature['properties']['type']}")
                     continue  
 
-                print(f"found earthquake at time: {feature['properties']['time']}")
+                print(f"found earthquake at time: {feature['properties']['updated']}")
                 new_earthquakes.append(feature)
             
             return new_earthquakes

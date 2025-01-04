@@ -32,7 +32,7 @@ def fetch_new_earthquakes():
             }
 
             response = requests.get(url, params=params)
-            response.raise_for_status()  # Raise an error for bad responses
+            response.raise_for_status()
             
             data = response.json()
             new_earthquakes = []
@@ -40,7 +40,21 @@ def fetch_new_earthquakes():
             for feature in data['features']:
                 if feature['properties']['type'] != 'earthquake':
                     print(f"found a non-earthquake type: {feature['properties']['type']}")
-                    continue  
+                    continue
+
+                magnitude = feature['properties']['mag']
+                distance = feature['properties']['distance'] / 111.19  # Convert km to degrees
+
+                # add all earthquakes under 100 miles radius
+                if distance <= 1.45:
+                    print(f"Found earthquake: magnitude {magnitude}, distance {distance:.2f} degrees, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    new_earthquakes.append(feature)
+                # only add earthquakes M4.5+ for 100 miles+ distance
+                elif magnitude >= 4.5:
+                    print(f"Found strong distant earthquake: magnitude {magnitude}, distance {distance:.2f} degrees, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    new_earthquakes.append(feature)
+                else:
+                    print(f"Skipping earthquake: magnitude {magnitude}, distance {distance:.2f} degrees, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
 
                 print(f"earthquake occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
                 print(f"earthquake updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
@@ -55,7 +69,7 @@ def fetch_new_earthquakes():
                 time.sleep(1)  
             if attempt == max_attempts:
                 print("Max attempts reached. Giving up.")
-                return []  
+                return []
 
 def post_to_threads(earthquakes):
     THREADS_USER_ID = os.getenv('THREADS_USER_ID')

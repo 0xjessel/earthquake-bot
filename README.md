@@ -8,7 +8,7 @@ Follow my [Threads profile](https://www.threads.net/@sfearthquakealerts)!
 
 `fetch_and_post_earthquake.py` is run via a cron job on Dreamhost that is scheduled to run every 5 minutes.
 
-`fetch_new_earthquakes()` gets the latest data from the USGS API. I use Oakland, CA as the lat/long coordinates and use a ~277 mile radius to fetch earthquakes that happened in the last 5 minutes within that circle.
+`fetch_new_earthquakes()` gets the latest data from the USGS API. I use Oakland, CA as the lat/long coordinates and use a ~277 mile radius to fetch earthquakes that happened in the last 5 minutes within that circle. Report all earthquakes that happen with a 100 mile radius, M4.5+ only for earthquakes between 100-277 miles away.
 
 `post_to_threads()` takes the earthquake data and calls the threads API to publish a post. I include the USGS link to the earthquake details plus a google maps link to the coordinates of the earthquake epicenter.
 

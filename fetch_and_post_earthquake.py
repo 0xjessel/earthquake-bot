@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import os
 import time
 import re  # Import the regular expression module
+from math import radians, sin, cos, sqrt, atan2  # Add this at the top with other imports
 
 load_dotenv(dotenv_path='.env.local')
 
@@ -43,7 +44,10 @@ def fetch_new_earthquakes():
                     continue
 
                 magnitude = feature['properties']['mag']
-                distance_km = feature['properties']['distance']  
+                # Calculate distance using coordinates
+                eq_lat = feature['geometry']['coordinates'][1]
+                eq_lon = feature['geometry']['coordinates'][0]
+                distance_km = calculate_distance(float(latitude), float(longitude), eq_lat, eq_lon)
 
                 # add all earthquakes under 100 mile radius 
                 if distance_km <= 161:
@@ -128,6 +132,20 @@ def post_to_threads(earthquakes):
             print("Earthquake posted successfully.")
         except requests.RequestException as e:
             print(f"Failed to post earthquake: {e}")
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth's radius in kilometers
+
+    lat1, lon1, lat2, lon2 = map(radians, [float(lat1), float(lon1), float(lat2), float(lon2)])
+    
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    distance = R * c
+    
+    return distance
 
 if __name__ == "__main__":
     new_earthquakes = fetch_new_earthquakes()

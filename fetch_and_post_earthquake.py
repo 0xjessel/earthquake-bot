@@ -44,21 +44,22 @@ def fetch_new_earthquakes():
                     continue
 
                 magnitude = feature['properties']['mag']
-                # Calculate distance using coordinates
+                # Calculate distance in miles directly
                 eq_lat = feature['geometry']['coordinates'][1]
                 eq_lon = feature['geometry']['coordinates'][0]
-                distance_km = calculate_distance(float(latitude), float(longitude), eq_lat, eq_lon)
+                distance = calculate_distance(float(latitude), float(longitude), eq_lat, eq_lon)
 
-                # add all earthquakes under 100 mile radius 
-                if distance_km <= 161:
-                    print(f"Found earthquake: magnitude {magnitude}, distance {distance_km:.1f} km, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                if distance <= 20:
+                    print(f"Found a close earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
                     new_earthquakes.append(feature)
-                # only add earthquakes M4.5+ for 100+ mile distance
-                elif magnitude >= 4.5:
-                    print(f"Found strong distant earthquake: magnitude {magnitude}, distance {distance_km:.1f} km, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                elif distance <= 100 and magnitude >= 2.0:
+                    print(f"Found a nearby earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    new_earthquakes.append(feature)
+                elif distance > 100 and magnitude >= 4.5:
+                    print(f"Found a far earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
                     new_earthquakes.append(feature)
                 else:
-                    print(f"Skipping earthquake: magnitude {magnitude}, distance {distance_km:.1f} km, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    print(f"Skipping earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
 
             return new_earthquakes
         
@@ -134,7 +135,7 @@ def post_to_threads(earthquakes):
             print(f"Failed to post earthquake: {e}")
 
 def calculate_distance(lat1, lon1, lat2, lon2):
-    R = 6371  # Earth's radius in kilometers
+    R = 3959  
 
     lat1, lon1, lat2, lon2 = map(radians, [float(lat1), float(lon1), float(lat2), float(lon2)])
     

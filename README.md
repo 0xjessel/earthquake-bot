@@ -8,7 +8,7 @@ Follow my [Threads profile](https://www.threads.net/@sfearthquakealerts)!
 
 `fetch_and_post_earthquake.py` is run via a cron job on Dreamhost that is scheduled to run every 5 minutes.
 
-`fetch_new_earthquakes()` gets the latest data from the USGS API. Using SFO Airport as the reference point, the script monitors earthquakes within a 300-mile radius and filters them based on distance and magnitude:
+`fetch_new_earthquakes()` gets the latest data from the USGS API. The script monitors earthquakes within a 300-mile radius and filters them based on distance and magnitude:
 
 - Within 25 miles: Reports ALL earthquakes
 - 25-50 miles: Reports earthquakes M2.0 and above
@@ -16,6 +16,8 @@ Follow my [Threads profile](https://www.threads.net/@sfearthquakealerts)!
 - 100-250 miles: Reports earthquakes M5.0 and above
 - 250-300 miles: Reports earthquakes M7.0 and above
 
+25 mile radius:
+<br />
 <img src="https://raw.githubusercontent.com/0xjessel/earthquake-bot/main/images/25mi_radius.PNG" alt="25mi radius" width="600px">
 
 `post_to_threads()` takes the earthquake data and calls the threads API to publish a post. I include the USGS link to the earthquake details plus a google maps link to the coordinates of the earthquake epicenter.

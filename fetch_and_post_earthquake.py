@@ -49,14 +49,19 @@ def fetch_new_earthquakes():
                 eq_lon = feature['geometry']['coordinates'][0]
                 distance = calculate_distance(float(latitude), float(longitude), eq_lat, eq_lon)
 
-                if distance <= 20:
-                    print(f"Found a close earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                if distance <= 25:
+                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
                     new_earthquakes.append(feature)
-                elif distance <= 100 and magnitude >= 2.0:
-                    print(f"Found a nearby earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                elif distance <= 50 and magnitude >= 2.0:
+                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
                     new_earthquakes.append(feature)
-                elif distance > 100 and magnitude >= 4.5:
-                    print(f"Found a far earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                elif distance <= 100 and magnitude >= 4.0:
+                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                elif distance <= 250 and magnitude >= 5.0:
+                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    new_earthquakes.append(feature)
+                elif distance > 250 and magnitude >= 7.0:
+                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
                     new_earthquakes.append(feature)
                 else:
                     print(f"Skipping earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")

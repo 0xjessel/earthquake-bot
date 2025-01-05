@@ -16,6 +16,8 @@ Follow my [Threads profile](https://www.threads.net/@sfearthquakealerts)!
 - 100-250 miles: Reports earthquakes M5.0 and above
 - 250-300 miles: Reports earthquakes M7.0 and above
 
+<img src="https://raw.githubusercontent.com/0xjessel/earthquake-bot/main/images/25mi_radius.PNG" alt="25mi radius" width="600px">
+
 `post_to_threads()` takes the earthquake data and calls the threads API to publish a post. I include the USGS link to the earthquake details plus a google maps link to the coordinates of the earthquake epicenter.
 
 I also schedule `th_access_token.py` to be a cron job that's run every month to keep the access token valid.

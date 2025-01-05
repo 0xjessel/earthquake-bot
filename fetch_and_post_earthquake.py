@@ -43,23 +43,19 @@ def fetch_new_earthquakes():
                     continue
 
                 magnitude = feature['properties']['mag']
-                distance = feature['properties']['distance'] / 111.19  # Convert km to degrees
+                distance_km = feature['properties']['distance']  
 
-                # add all earthquakes under 100 miles radius
-                if distance <= 1.45:
-                    print(f"Found earthquake: magnitude {magnitude}, distance {distance:.2f} degrees, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                # add all earthquakes under 100 mile radius 
+                if distance_km <= 161:
+                    print(f"Found earthquake: magnitude {magnitude}, distance {distance_km:.1f} km, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
                     new_earthquakes.append(feature)
-                # only add earthquakes M4.5+ for 100 miles+ distance
+                # only add earthquakes M4.5+ for 100+ mile distance
                 elif magnitude >= 4.5:
-                    print(f"Found strong distant earthquake: magnitude {magnitude}, distance {distance:.2f} degrees, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    print(f"Found strong distant earthquake: magnitude {magnitude}, distance {distance_km:.1f} km, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
                     new_earthquakes.append(feature)
                 else:
-                    print(f"Skipping earthquake: magnitude {magnitude}, distance {distance:.2f} degrees, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    print(f"Skipping earthquake: magnitude {magnitude}, distance {distance_km:.1f} km, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}, updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
 
-                print(f"earthquake occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
-                print(f"earthquake updated: {datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
-                new_earthquakes.append(feature)
-            
             return new_earthquakes
         
         except requests.RequestException as e:

@@ -13,8 +13,8 @@ Follow my [Threads profile](https://www.threads.net/@sfearthquakealerts)!
 - Within 25 miles: Reports ALL earthquakes
 - 25-50 miles: Reports earthquakes M2.0 and above
 - 50-100 miles: Reports earthquakes M4.0 and above
-- 100-250 miles: Reports earthquakes M5.0 and above
-- 250-300 miles: Reports earthquakes M7.0 and above
+- 100-200 miles: Reports earthquakes M5.0 and above
+- 200-300 miles: Reports earthquakes M7.0 and above
 
 25 mile radius:
 <br />

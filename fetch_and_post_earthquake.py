@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
 import time
-import re  # Import the regular expression module
-from math import radians, sin, cos, sqrt, atan2  # Add this at the top with other imports
+import re  
+from math import radians, sin, cos, sqrt, atan2  
 
 load_dotenv(dotenv_path='.env.local')
 
@@ -58,10 +58,10 @@ def fetch_new_earthquakes():
                 elif distance <= 100 and magnitude >= 4.0:
                     log_earthquake(distance, feature)
                     new_earthquakes.append(feature)
-                elif distance <= 250 and magnitude >= 5.0:
+                elif distance <= 200 and magnitude >= 5.0:
                     log_earthquake(distance, feature)
                     new_earthquakes.append(feature)
-                elif distance > 250 and magnitude >= 7.0:
+                elif distance > 200 and magnitude >= 7.0:
                     log_earthquake(distance, feature)
                     new_earthquakes.append(feature)
                 else:

@@ -50,21 +50,22 @@ def fetch_new_earthquakes():
                 distance = calculate_distance(float(latitude), float(longitude), eq_lat, eq_lon)
 
                 if distance <= 25:
-                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    log_earthquake(distance, feature)
                     new_earthquakes.append(feature)
                 elif distance <= 50 and magnitude >= 2.0:
-                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    log_earthquake(distance, feature)
                     new_earthquakes.append(feature)
                 elif distance <= 100 and magnitude >= 4.0:
-                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    log_earthquake(distance, feature)
+                    new_earthquakes.append(feature)
                 elif distance <= 250 and magnitude >= 5.0:
-                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    log_earthquake(distance, feature)
                     new_earthquakes.append(feature)
                 elif distance > 250 and magnitude >= 7.0:
-                    print(f"Found a earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    log_earthquake(distance, feature)
                     new_earthquakes.append(feature)
                 else:
-                    print(f"Skipping earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+                    log_earthquake(distance, feature, "Skipping")
 
             return new_earthquakes
         
@@ -152,6 +153,14 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     distance = R * c
     
     return distance
+
+def log_earthquake(distance, feature, action="Found"):
+    magnitude = feature['properties']['mag']
+    occurred_time = datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
+    updated_time = datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
+    
+    status = "Skipping" if action == "Skipping" else "Found"
+    print(f"{status} earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {occurred_time}, updated: {updated_time}")
 
 if __name__ == "__main__":
     new_earthquakes = fetch_new_earthquakes()

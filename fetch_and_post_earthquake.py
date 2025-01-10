@@ -26,7 +26,7 @@ def fetch_new_earthquakes():
         try:
             params = {
                 'format': 'geojson',
-                'updatedafter': (current_time - timedelta(minutes=5)).isoformat(),  
+                'starttime': (current_time - timedelta(minutes=5)).isoformat(), 
                 'latitude': latitude,  
                 'longitude': longitude,  
                 'maxradiuskm': max_radius 

@@ -112,7 +112,11 @@ def post_to_threads(earthquakes):
         else: 
             prefix = "🫨️🫨🫨🫨"
 
-        post_message = f"{prefix} {magnitude} magnitude earthquake occurred {location}."
+        occurred_time = datetime.fromtimestamp(
+            earthquake["properties"]["time"] / 1000
+        ).strftime("%H:%M")
+
+        post_message = f"{prefix} {magnitude} magnitude earthquake occurred {location} at {occurred_time}."
         details_message = f" Details: {usgs_link}"
 
         if len(post_message) + len(details_message) <= 500:

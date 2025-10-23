@@ -15,12 +15,14 @@ longitude = os.getenv('LONGITUDE')
 max_radius = os.getenv('MAX_RADIUS_KM')
 
 def fetch_new_earthquakes():
+    print("Starting earthquake fetch...")
     url = usgs_api_url
     max_attempts = 5  
     attempt = 0
 
     # Get the current time once before the loop
     current_time = datetime.now(timezone.utc)
+    print(f"Current time (UTC): {current_time.isoformat()}")
 
     while attempt < max_attempts:
         try:
@@ -31,11 +33,15 @@ def fetch_new_earthquakes():
                 'longitude': longitude,  
                 'maxradiuskm': max_radius 
             }
+            print(f"Querying USGS API with params: lat={latitude}, lon={longitude}, radius={max_radius}km, starttime={params['starttime']}")
 
             response = requests.get(url, params=params)
             response.raise_for_status()
+            print(f"API response status: {response.status_code}")
             
             data = response.json()
+            total_features = len(data.get('features', []))
+            print(f"Received {total_features} earthquake features from API")
             new_earthquakes = []
             
             for feature in data['features']:
@@ -67,6 +73,7 @@ def fetch_new_earthquakes():
                 else:
                     log_earthquake(distance, feature, "Skipping")
 
+            print(f"Filtered to {len(new_earthquakes)} earthquakes matching criteria")
             return new_earthquakes
         
         except requests.RequestException as e:
@@ -79,10 +86,12 @@ def fetch_new_earthquakes():
                 return []
 
 def post_to_threads(earthquakes):
+    print(f"Starting to post {len(earthquakes)} earthquakes to Threads...")
     THREADS_USER_ID = os.getenv('THREADS_USER_ID')
     THREADS_ACCESS_TOKEN = os.getenv('THREADS_ACCESS_TOKEN')
     
-    for earthquake in earthquakes:  
+    for idx, earthquake in enumerate(earthquakes, 1):
+        print(f"\nProcessing earthquake {idx}/{len(earthquakes)}...")  
         magnitude = round(earthquake['properties']['mag'], 1)  
         location = earthquake['properties']['place']
         coordinates = earthquake['geometry']['coordinates']
@@ -122,7 +131,7 @@ def post_to_threads(earthquakes):
         if len(post_message) + len(details_message) <= 500:
             post_message += details_message
 
-        print(post_message)
+        print(f"Post message ({len(post_message)} chars): {post_message}")
 
         THREADS_API_URL = (
             f"https://graph.threads.net/{THREADS_USER_ID}/threads?text={quote(post_message)}"
@@ -130,19 +139,26 @@ def post_to_threads(earthquakes):
         )
         
         try:
+            print("Creating thread container...")
             response = requests.post(THREADS_API_URL)
             response.raise_for_status()
             
             data = response.json()
             creation_id = data.get('id')  
+            print(f"Thread container created with ID: {creation_id}")
             
             publish_url = f"https://graph.threads.net/{THREADS_USER_ID}/threads_publish?creation_id={creation_id}&access_token={THREADS_ACCESS_TOKEN}"
+            print("Publishing thread...")
             publish_response = requests.post(publish_url)
             publish_response.raise_for_status()  
+            publish_data = publish_response.json()
+            thread_id = publish_data.get('id')
             
-            print("Earthquake posted successfully.")
+            print(f"✓ Earthquake posted successfully (Thread ID: {thread_id})")
         except requests.RequestException as e:
-            print(f"Failed to post earthquake: {e}")
+            print(f"✗ Failed to post earthquake: {e}")
+            if hasattr(e.response, 'text'):
+                print(f"Response body: {e.response.text}")
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     R = 3959  
@@ -167,8 +183,18 @@ def log_earthquake(distance, feature, action="Found"):
     print(f"{status} earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {occurred_time}, updated: {updated_time}")
 
 if __name__ == "__main__":
+    print("=" * 60)
+    print("Earthquake Monitoring Script Started")
+    print("=" * 60)
+    
     new_earthquakes = fetch_new_earthquakes()
+    
     if new_earthquakes:
+        print("\n" + "=" * 60)
         post_to_threads(new_earthquakes)
+        print("=" * 60)
+        print("Script completed successfully")
     else:
-        print("No new earthquakes found")
+        print("\n" + "=" * 60)
+        print("No new earthquakes found matching criteria")
+        print("=" * 60)

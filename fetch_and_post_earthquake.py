@@ -9,18 +9,22 @@ from math import radians, sin, cos, sqrt, atan2
 
 load_dotenv(dotenv_path='.env.local')
 
+print("DEBUG: Loading environment variables...")
 usgs_api_url = os.getenv('USGS_API_URL')
 latitude = os.getenv('LATITUDE')
 longitude = os.getenv('LONGITUDE')
 max_radius = os.getenv('MAX_RADIUS_KM')
+print(f"DEBUG: Loaded config - URL: {usgs_api_url}, Lat: {latitude}, Lon: {longitude}, Radius: {max_radius}km")
 
 def fetch_new_earthquakes():
+    print("DEBUG: Starting fetch_new_earthquakes()")
     url = usgs_api_url
     max_attempts = 5  
     attempt = 0
 
     # Get the current time once before the loop
     current_time = datetime.now(timezone.utc)
+    print(f"DEBUG: Current time (UTC): {current_time.isoformat()}")
 
     while attempt < max_attempts:
         try:
@@ -31,11 +35,15 @@ def fetch_new_earthquakes():
                 'longitude': longitude,  
                 'maxradiuskm': max_radius 
             }
+            print(f"DEBUG: Making API request (attempt {attempt + 1}/{max_attempts})")
+            print(f"DEBUG: Request params: {params}")
 
             response = requests.get(url, params=params)
             response.raise_for_status()
+            print(f"DEBUG: API request successful, status code: {response.status_code}")
             
             data = response.json()
+            print(f"DEBUG: Received {len(data['features'])} earthquake features from API")
             new_earthquakes = []
             
             for feature in data['features']:
@@ -48,6 +56,7 @@ def fetch_new_earthquakes():
                 eq_lat = feature['geometry']['coordinates'][1]
                 eq_lon = feature['geometry']['coordinates'][0]
                 distance = calculate_distance(float(latitude), float(longitude), eq_lat, eq_lon)
+                print(f"DEBUG: Processing earthquake - mag: {magnitude}, distance: {distance:.1f} miles")
 
                 if distance <= 25:
                     log_earthquake(distance, feature)
@@ -67,6 +76,7 @@ def fetch_new_earthquakes():
                 else:
                     log_earthquake(distance, feature, "Skipping")
 
+            print(f"DEBUG: Returning {len(new_earthquakes)} earthquakes that match criteria")
             return new_earthquakes
         
         except requests.RequestException as e:
@@ -79,10 +89,13 @@ def fetch_new_earthquakes():
                 return []
 
 def post_to_threads(earthquakes):
+    print(f"DEBUG: Starting post_to_threads() with {len(earthquakes)} earthquake(s)")
     THREADS_USER_ID = os.getenv('THREADS_USER_ID')
     THREADS_ACCESS_TOKEN = os.getenv('THREADS_ACCESS_TOKEN')
+    print(f"DEBUG: Threads User ID: {THREADS_USER_ID}")
     
-    for earthquake in earthquakes:  
+    for earthquake in earthquakes:
+        print(f"DEBUG: Processing earthquake for posting...")  
         magnitude = round(earthquake['properties']['mag'], 1)  
         location = earthquake['properties']['place']
         coordinates = earthquake['geometry']['coordinates']
@@ -122,26 +135,32 @@ def post_to_threads(earthquakes):
         if len(post_message) + len(details_message) <= 500:
             post_message += details_message
 
+        print(f"DEBUG: Post message length: {len(post_message)} characters")
         print(post_message)
 
         THREADS_API_URL = (
             f"https://graph.threads.net/{THREADS_USER_ID}/threads?text={quote(post_message)}"
             f"&access_token={THREADS_ACCESS_TOKEN}&media_type=TEXT&link_attachment={quote(google_maps_link)}"
         )
+        print(f"DEBUG: Posting to Threads API...")
         
         try:
             response = requests.post(THREADS_API_URL)
             response.raise_for_status()
             
             data = response.json()
-            creation_id = data.get('id')  
+            creation_id = data.get('id')
+            print(f"DEBUG: Thread created with ID: {creation_id}")
             
             publish_url = f"https://graph.threads.net/{THREADS_USER_ID}/threads_publish?creation_id={creation_id}&access_token={THREADS_ACCESS_TOKEN}"
+            print(f"DEBUG: Publishing thread...")
             publish_response = requests.post(publish_url)
-            publish_response.raise_for_status()  
+            publish_response.raise_for_status()
+            print(f"DEBUG: Publish response status: {publish_response.status_code}")
             
             print("Earthquake posted successfully.")
         except requests.RequestException as e:
+            print(f"DEBUG: Error posting earthquake: {e}")
             print(f"Failed to post earthquake: {e}")
 
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -167,8 +186,11 @@ def log_earthquake(distance, feature, action="Found"):
     print(f"{status} earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {occurred_time}, updated: {updated_time}")
 
 if __name__ == "__main__":
+    print("DEBUG: ===== Starting earthquake monitoring script =====")
     new_earthquakes = fetch_new_earthquakes()
     if new_earthquakes:
+        print(f"DEBUG: Found {len(new_earthquakes)} earthquake(s) to post")
         post_to_threads(new_earthquakes)
     else:
         print("No new earthquakes found")
+    print("DEBUG: ===== Script execution completed =====")

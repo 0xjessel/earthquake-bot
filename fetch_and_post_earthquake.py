@@ -8,7 +8,7 @@ import time
 import traceback
 import re
 from datetime import datetime, timedelta, timezone
-from math import radians, sin, cos, sqrt, atan2
+from math import radians, degrees, sin, cos, sqrt, atan2
 import requests
 from dotenv import load_dotenv
 
@@ -18,6 +18,39 @@ usgs_api_url = os.getenv('USGS_API_URL')
 latitude = os.getenv('LATITUDE')
 longitude = os.getenv('LONGITUDE')
 max_radius = os.getenv('MAX_RADIUS_KM')
+
+# Multi-point reference grid: the tier-qualifying distance for an event is the
+# MINIMUM haversine distance from its epicenter to any of these anchors.
+# The env LATITUDE/LONGITUDE above are left intact (USGS API params).
+REFERENCE_ANCHORS = [
+    ('san francisco', 37.77, -122.42),
+    ('oakland', 37.80, -122.27),
+    ('san jose', 37.34, -121.89),
+]
+
+_COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+            'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+
+
+def bearing_dir(lat1, lon1, lat2, lon2):
+    # 16-point compass direction from (lat1, lon1) toward (lat2, lon2).
+    p1, p2 = radians(lat1), radians(lat2)
+    dl = radians(lon2 - lon1)
+    y = sin(dl) * cos(p2)
+    x = cos(p1) * sin(p2) - sin(p1) * cos(p2) * cos(dl)
+    bearing = (degrees(atan2(y, x)) + 360.0) % 360.0
+    return _COMPASS[int((bearing + 11.25) // 22.5) % 16]
+
+
+def closest_reference(lat, lon):
+    # Nearest reference anchor: (Display Name, miles, compass direction).
+    # direction is '' when the epicenter is within 1 mile of the anchor.
+    best = None
+    for name, alat, alon in REFERENCE_ANCHORS:
+        d = calculate_distance(alat, alon, lat, lon)
+        if best is None or d < best[1]:
+            best = (name, d, '' if d < 1 else bearing_dir(alat, alon, lat, lon))
+    return best[0].title(), best[1], best[2]
 
 STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'earthquake_state.json')
 STATE_MAX_AGE = timedelta(hours=24)
@@ -139,15 +172,29 @@ def fetch_new_earthquakes():
                   f"place={feature['properties'].get('place')}")
             continue
 
-        # Calculate distance in miles directly
+        # Tier-qualifying distance: miles from the epicenter to the CLOSEST
+        # reference anchor (min over the grid).
         eq_lat = feature['geometry']['coordinates'][1]
         eq_lon = feature['geometry']['coordinates'][0]
-        distance = calculate_distance(float(latitude), float(longitude), eq_lat, eq_lon)
+        _, distance, _ = closest_reference(eq_lat, eq_lon)
+
+        # Depth-aware notability: shallow events (depth < 10 km) within 50 mi
+        # lower the applicable tier's magnitude threshold by 0.5. Null depth
+        # gets no discount (conservative); log that once per run.
+        global _NULL_DEPTH_LOGGED
+        depth = parse_depth(feature)
+        if depth is None and not _NULL_DEPTH_LOGGED:
+            print("WARNING: null depth on event; no depth discount applied")
+            _NULL_DEPTH_LOGGED = True
+        shallow = (depth is not None and depth < 10 and distance <= 50)
 
         if distance <= 25:
-            log_earthquake(distance, feature)
-            new_earthquakes.append(feature)
-        elif distance <= 50 and magnitude >= 2.0:
+            if magnitude >= (2.0 if shallow else 2.5):
+                log_earthquake(distance, feature)
+                new_earthquakes.append(feature)
+            else:
+                log_earthquake(distance, feature, "Skipping")
+        elif distance <= 50 and magnitude >= (1.5 if shallow else 2.0):
             log_earthquake(distance, feature)
             new_earthquakes.append(feature)
         elif distance <= 100 and magnitude >= 4.0:
@@ -165,22 +212,32 @@ def fetch_new_earthquakes():
     return new_earthquakes
 
 
+def parse_depth(feature):
+    """Return the USGS depth (km) as float, or None if absent/unparseable."""
+    depth = (feature.get('properties') or {}).get('depth')
+    if depth is None:
+        return None
+    try:
+        return float(depth)
+    except (TypeError, ValueError):
+        return None
+
+
+_NULL_DEPTH_LOGGED = False
+
+
 def build_post_message(earthquake):
     """Build the Threads post text (and maps link) for an earthquake feature."""
     magnitude = round(earthquake['properties']['mag'], 1)
-    location = earthquake['properties']['place']
     coordinates = earthquake['geometry']['coordinates']
     lat, lon = coordinates[1], coordinates[0]  # USGS returns [lon, lat]
 
-    # Convert km to mi
-    match = re.match(r"(\d+)\s*km", location)
-    if match:
-        km_value = float(match.group(1))
-        miles_value = km_value * 0.621371  # Convert km to miles
-        miles_value = round(miles_value, 1)  # Round to one decimal point
-
-        mile_string = "mile" if miles_value < 1 else "miles"
-        location = f"{miles_value} {mile_string} {location[match.end():].strip()}"  # Replace km with miles
+    # Caption location clause: closest reference anchor only (no depth text).
+    city, miles, direction = closest_reference(lat, lon)
+    if miles < 1:
+        location = f"near {city}"
+    else:
+        location = f"{miles:.1f} miles {direction} of {city}"
 
     google_maps_link = f"https://www.google.com/maps/place/{lat}+{lon}/@{lat},{lon},9z"
     usgs_link = earthquake['properties']['url']
@@ -196,9 +253,10 @@ def build_post_message(earthquake):
     else:
         prefix = "\U0001FAE8\ufe0f\U0001FAE8\U0001FAE8\U0001FAE8"
 
-    occurred_time = datetime.fromtimestamp(
-        earthquake["properties"]["time"] / 1000
-    ).strftime("%H:%M")
+    _occ_dt = datetime.fromtimestamp(
+        earthquake["properties"]["time"] / 1000, tz=timezone.utc
+    ).astimezone()
+    occurred_time = f"{_occ_dt.strftime('%I').lstrip('0')}:{_occ_dt.strftime('%M')} {_occ_dt.strftime('%p').lower()}"
 
     post_message = f"{prefix} {magnitude} magnitude earthquake occurred {location} at {occurred_time}."
     details_message = f" Details: {usgs_link}"
@@ -271,11 +329,13 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
 def log_earthquake(distance, feature, action="Found"):
     magnitude = feature['properties']['mag']
+    depth = parse_depth(feature)
+    depth_part = f"{round(depth)} km" if depth is not None else "depth n/a"
     occurred_time = datetime.fromtimestamp(feature['properties']['time'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
     updated_time = datetime.fromtimestamp(feature['properties']['updated'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
 
     status = "Skipping" if action == "Skipping" else "Found"
-    print(f"{status} earthquake: magnitude {magnitude}, distance {distance:.1f} miles, occurred: {occurred_time}, updated: {updated_time}")
+    print(f"{status} earthquake: magnitude {magnitude}, distance {distance:.1f} miles (nearest anchor), depth {depth_part}, occurred: {occurred_time}, updated: {updated_time}")
 
 
 def main():

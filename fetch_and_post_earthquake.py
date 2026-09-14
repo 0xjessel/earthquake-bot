@@ -285,30 +285,57 @@ def post_single_to_threads(post_message, google_maps_link):
     )
     headers = {'Authorization': f'Bearer {THREADS_ACCESS_TOKEN}'}
 
+    # Step 1: create exactly one draft (orphaned drafts are invisible on
+    # Threads, so a failed create cannot cause a duplicate).
+    creation_id = None
     for attempt in (1, 2):
         try:
-            response = requests.post(THREADS_API_URL, headers=headers, timeout=4)
+            response = requests.post(THREADS_API_URL, headers=headers, timeout=15)
             response.raise_for_status()
-
             data = response.json()
             creation_id = data.get('id') if isinstance(data, dict) else None
-            if not creation_id:
-                print(f"ERROR: Threads creation response missing 'id': {response.text[:200]!r}")
+            if creation_id:
                 break
-
-            publish_url = (
-                f"https://graph.threads.net/{THREADS_USER_ID}/threads_publish"
-                f"?creation_id={creation_id}"
-            )
-            publish_response = requests.post(publish_url, headers=headers, timeout=4)
-            publish_response.raise_for_status()
-
-            print("Earthquake posted successfully.")
-            return True
+            print(f"ERROR: Threads creation response missing 'id': {response.text[:200]!r}")
+            break
         except requests.RequestException as e:
-            print(f"Failed to post earthquake (attempt {attempt}): {e}")
+            print(f"Failed to create draft (attempt {attempt}): {e}")
             if attempt == 1:
                 time.sleep(2)
+    if not creation_id:
+        return False
+
+    # Step 2: publish that single draft. Never re-create.
+    publish_url = (
+        f"https://graph.threads.net/{THREADS_USER_ID}/threads_publish"
+        f"?creation_id={creation_id}"
+    )
+    for attempt in (1, 2):
+        try:
+            publish_response = requests.post(publish_url, headers=headers, timeout=15)
+            publish_response.raise_for_status()
+            print("Earthquake posted successfully.")
+            return True
+        except requests.exceptions.HTTPError:
+            # Server explicitly rejected the publish: it was NOT posted.
+            # Leave it unseen so the next run can retry with a fresh draft.
+            print("Threads publish rejected by server; not posted.")
+            return False
+        except requests.exceptions.ConnectionError as e:
+            # Connect-level failure: the request never reached the server, so
+            # nothing was published. Safe to retry the same draft.
+            print(f"Publish connect error (attempt {attempt}); retrying the same draft: {e}")
+            if attempt == 1:
+                time.sleep(2)
+        except requests.RequestException as e:
+            # Read timeout or other ambiguous outcome after the request was
+            # sent: the server may have already published. Assume posted and
+            # do NOT retry, so we can never create a second draft/post.
+            print(f"Publish returned an ambiguous outcome ({e}); assuming posted, "
+                  f"NOT retrying to avoid a duplicate.")
+            return True
+    # Both publish attempts were connect errors (server never received it):
+    # nothing was posted. Leave it unseen so the next run can retry.
     return False
 
 

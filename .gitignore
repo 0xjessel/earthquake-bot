@@ -3,3 +3,7 @@
 .env.local
 
 venv
+# token refresh runtime state / logs
+.token_state.json
+.cron_status*
+th_access_token.log

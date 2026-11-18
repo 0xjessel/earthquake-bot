@@ -22,7 +22,9 @@ Follow my [Threads profile](https://www.threads.net/@sfearthquakealerts)!
 
 `post_to_threads()` takes the earthquake data and calls the threads API to publish a post. I include the USGS link to the earthquake details plus a google maps link to the coordinates of the earthquake epicenter.
 
-I also schedule `th_access_token.py` to be a cron job that's run every month to keep the access token valid.
+`th_access_token.sh` (a wrapper around `th_access_token.py`) runs as a **daily** cron job to keep the Threads access token valid. Long-lived tokens last 60 days and can only be refreshed while still valid, so it refreshes about once a day (it skips if it already refreshed in the last 20h, or if the token was pasted in less than 24h ago). The refreshed token is written back to `.env.local` and its expiry goes to `.token_state.json`. Any failure exits 1 and is recorded in `.cron_status.token` so the cron watchdog alerts, and every run is logged to `th_access_token.log`. After repairing the server or venv, run `./th_access_token.sh --force` once to refresh right away.
+
+If the token has already expired it can't be refreshed. Generate a new long-lived token and replace `THREADS_ACCESS_TOKEN` in `.env.local`.
 
 # Instructions
 
